@@ -11,8 +11,13 @@ import UIKit
 
 class MasterViewController: UITableViewController {
     
+    private let kTableHeaderHeight: CGFloat = 300.0;
+    private let kTableHeaderCutAway: CGFloat = 80.0
+    
     var detailViewController: DetailViewController? = nil
     var objects = [AnyObject]()
+    var headerMaskLayer: CAShapeLayer!
+    var headerView: UIView!
     let items = [
         NewsItem(category: .World, summary: "Climate Change Protests, divestments meet fossil fuels realities"),
         NewsItem(category: .Europe, summary: "Admission is $8500 US but will 'echo in your soul' says one TED veteran. Read on for how to watch free"),
@@ -29,12 +34,27 @@ class MasterViewController: UITableViewController {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         
+        let effectiveHeight = kTableHeaderHeight-kTableHeaderCutAway/2
+        
         self.tableView.rowHeight = UITableViewAutomaticDimension
         
-        self.navigationItem.leftBarButtonItem = self.editButtonItem()
+        headerView = tableView.tableHeaderView;
+        tableView.tableHeaderView = nil
+        tableView .addSubview(headerView)
+        tableView.contentInset = UIEdgeInsets(top: kTableHeaderHeight, left: 0, bottom: 0, right: 0)
+        tableView.contentOffset = CGPoint(x: 0, y: -effectiveHeight)
         
-        //        let addButton = UIBarButtonItem(barButtonSystemItem: .Add, target: self, action: "insertNewObject:")
-        //        self.navigationItem.rightBarButtonItem = addButton
+        headerMaskLayer = CAShapeLayer()
+        headerMaskLayer.fillColor = UIColor.blackColor().CGColor
+        headerView.layer.mask = headerMaskLayer
+        updateHeaderView()
+        
+        self.navigationItem.leftBarButtonItem = self.editButtonItem()
+        prefersStatusBarHidden()
+    }
+    
+    override func prefersStatusBarHidden() -> Bool {
+        return true
     }
     
     override func viewWillAppear(animated: Bool) {
@@ -94,9 +114,30 @@ class MasterViewController: UITableViewController {
         }
     }
     
-    override func prefersStatusBarHidden() -> Bool {
-        return true
+    func updateHeaderView() {
+        
+        
+        let effectiveHeight = kTableHeaderHeight-kTableHeaderCutAway/2
+
+        var headerRect = CGRect(x: 0, y: -effectiveHeight, width: tableView.bounds.width, height: kTableHeaderHeight)
+        if tableView.contentOffset.y < -effectiveHeight {
+            headerRect.origin.y = tableView.contentOffset.y
+            headerRect.size.height = -tableView.contentOffset.y
+        }
+        headerView.frame = headerRect
+        
+        let path = UIBezierPath()
+        path.moveToPoint(CGPoint(x: 0, y: 0))
+        path.addLineToPoint(CGPoint(x: headerRect.width, y: 0))
+        path.addLineToPoint(CGPoint(x: headerRect.width, y: headerRect.height))
+        path.addLineToPoint(CGPoint(x: 0, y: headerRect.height-kTableHeaderCutAway))
+        headerMaskLayer?.path = path.CGPath
     }
+    
+    override func scrollViewDidScroll(scrollView: UIScrollView) {
+        updateHeaderView()
+    }
+    
     
     override func tableView(tableView: UITableView, heightForRowAtIndexPath indexPath: NSIndexPath) -> CGFloat {
         return UITableViewAutomaticDimension
